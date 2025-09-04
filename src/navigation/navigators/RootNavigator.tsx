@@ -16,6 +16,7 @@ import RideConfirmationScreen from '../../screens/RideConfirmationScreen';
 import BookingConfirmationScreen from '../../screens/BookingConfirmationScreen';
 import SplashScreen from '../../screens/SplashScreen';
 import UpdateProfileScreen from '../../screens/UpdateProfileScreen';
+import BookingsScreen from "../../screens/BookingsScreen"
 
 const Stack = createNativeStackNavigator();
 
@@ -65,6 +66,10 @@ const AppContent = () => {
             <Stack.Screen
               name={ROUTES.UPDATEPROFILE}
               component={UpdateProfileScreen}
+            />
+             <Stack.Screen
+              name={ROUTES.BOOKINGS}
+              component={BookingsScreen}
             />
           </>
         ) : (

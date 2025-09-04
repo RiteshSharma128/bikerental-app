@@ -1,21 +1,44 @@
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import ROUTES from '../navigation/routes/ROUTES';
 
+// Define User type (adjust based on your schema)
+interface User {
+  firstName?: string;
+  email?: string;
+  phone?: string;
+  id?: string;
+}
+
+// Define navigation param list
+type RootStackParamList = {
+  Otp: { sessionId: string; phone: string; isLogin?: boolean };
+  ProfileCompletion: { phone: string };
+  Home: undefined; // No params for Home
+  // Add other screens as needed
+};
+
+type OtpScreenRouteProp = RouteProp<RootStackParamList, 'Otp'>;
+
+// Define Auth context return type
+interface AuthContextType {
+  verifyOtp: (sessionId: string, otp: string, phone: string) => Promise<User | null>;
+}
 
 const OtpScreen: React.FC = () => {
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const { verifyOtp } = useAuth();
-  const route = useRoute();
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+  const { verifyOtp } = useAuth() as AuthContextType;
+  const route = useRoute<OtpScreenRouteProp>();
   const navigation = useNavigation();
   const { sessionId, phone } = route.params;
   const [error, setError] = useState<string | null>(null);
-  const inputRefs = useRef<Array<TextInput | null>>([]);
+
+  // Properly type the ref array for TextInput
+  const inputRefs = useRef<(TextInput | null)[]>(new Array(6).fill(null));
 
   useEffect(() => {
-    // Focus on the first input when the component mounts
     inputRefs.current[0]?.focus();
   }, []);
 
@@ -25,12 +48,9 @@ const OtpScreen: React.FC = () => {
       newOtp[index] = value;
       setOtp(newOtp);
 
-      // Move focus to the next input if a digit is entered
       if (value && index < 5) {
         inputRefs.current[index + 1]?.focus();
-      }
-      // Move focus to the previous input if deleted
-      else if (!value && index > 0) {
+      } else if (!value && index > 0) {
         inputRefs.current[index - 1]?.focus();
       }
     }
@@ -45,11 +65,11 @@ const OtpScreen: React.FC = () => {
 
     try {
       const user = await verifyOtp(sessionId, otpString, phone);
-      console.log('Data', user);
-      if (!user?.firstName?.trim() || !user?.email?.trim()) {
+      if (user && (!user.firstName?.trim() || !user.email?.trim())) {
         navigation.navigate('ProfileCompletion', { phone });
+      } else {
+        navigation.navigate('Home');
       }
-      
     } catch (err) {
       setError('Invalid OTP');
     }
@@ -63,18 +83,16 @@ const OtpScreen: React.FC = () => {
 
   return (
     <View className="flex-1 bg-white p-6 items-center justify-center">
-      {/* Title */}
       <Text className="text-2xl font-bold text-gray-800 mb-2">Enter OTP</Text>
       <Text className="text-gray-500 mb-8">
         We have sent you an OTP on your phone number
       </Text>
 
-      {/* OTP Inputs */}
       <View className="flex-row justify-between w-2/3 mb-6 gap-1">
         {otp.map((digit, index) => (
           <TextInput
             key={index}
-            ref={(ref) => (inputRefs.current[index] = ref)}
+            ref={(ref) => (inputRefs.current[index] = ref)} // Assign ref to the array
             className="border border-gray-400 rounded-xl px-4 py-3 text-lg text-center w-12"
             keyboardType="numeric"
             maxLength={1}
@@ -86,10 +104,8 @@ const OtpScreen: React.FC = () => {
         ))}
       </View>
 
-      {/* Error Message */}
       {error && <Text className="text-red-500 mb-4">{error}</Text>}
 
-      {/* Verify Button */}
       <TouchableOpacity
         className="bg-green-600 py-4 px-8 rounded-xl items-center w-2/3"
         onPress={handleVerify}>

@@ -15,10 +15,37 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import FontAwesome5 from '@react-native-vector-icons/fontawesome';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import ROUTES from '../navigation/routes/ROUTES';
+
+// Define vehicle type based on your API response
+interface Vehicle {
+  _id: string;
+  name: string;
+  image?: string;
+  locations: string[];
+  calculatedPrice: number;
+  calculatedIncludedKm: number;
+  availability: { [key: string]: boolean };
+}
+
+// Define navigation param list
+type RootStackParamList = {
+  Search: { pickupDate: string; pickupTime: string; dropoffDate: string; dropoffTime: string };
+  RideConfirmation: {
+    selectedVehicle: Vehicle;
+    pickupDate: string;
+    pickupTime: string;
+    dropoffDate: string;
+    dropoffTime: string;
+    location: string;
+  };
+  // Add other screens as needed
+};
+
+type SearchScreenRouteProp = RouteProp<RootStackParamList, 'Search'>;
 
 const HEADER_EXPANDED_HEIGHT = 220;
 const HEADER_COLLAPSED_HEIGHT = 120;
@@ -31,21 +58,21 @@ const SearchScreen = () => {
     extrapolate: 'clamp',
   });
   const navigation = useNavigation();
-  const route = useRoute();
-  const [vehicles, setVehicles] = useState([]);
-  const [selectedLocations, setSelectedLocations] = useState({});
-  const [dropdownVisible, setDropdownVisible] = useState(null);
+  const route = useRoute<SearchScreenRouteProp>();
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<{ [key: string]: string }>({}); // Typed as object with string keys and values
+  const [dropdownVisible, setDropdownVisible] = useState<string | null>(null); // Typed as string or null
   const [searchOverlayVisible, setSearchOverlayVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredVehicles, setFilteredVehicles] = useState([]);
-  const { width, height } = Dimensions.get('window'); // Get screen dimensions
+  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
+  const { width, height } = Dimensions.get('window');
 
   const {
     pickupDate,
     pickupTime,
     dropoffDate,
     dropoffTime,
-  } = route.params || {};
+  } = route.params;
 
   // Format dates using dayjs
   const formattedPickupDate = pickupDate ? dayjs(pickupDate).format('MMM D, YYYY') : 'N/A';
@@ -63,11 +90,11 @@ const SearchScreen = () => {
             endTime: dropoffTime,
           },
         );
-        const fetchedVehicles = response.data;
+        const fetchedVehicles: Vehicle[] = response.data;
         setVehicles(fetchedVehicles);
-        setFilteredVehicles(fetchedVehicles); // Initialize filtered vehicles with all data
+        setFilteredVehicles(fetchedVehicles);
         // Initialize selectedLocations with the first location of each vehicle
-        const initialLocations = fetchedVehicles.reduce((acc, vehicle) => {
+        const initialLocations = fetchedVehicles.reduce((acc: { [key: string]: string }, vehicle: Vehicle) => {
           acc[vehicle._id] = vehicle.locations[0] || '';
           return acc;
         }, {});
@@ -82,15 +109,15 @@ const SearchScreen = () => {
     }
   }, [pickupDate, pickupTime, dropoffDate, dropoffTime]);
 
-  const handleLocationSelect = (vehicleId, location) => {
+  const handleLocationSelect = (vehicleId: string, location: string) => {
     setSelectedLocations(prev => ({
       ...prev,
       [vehicleId]: location,
     }));
-    setDropdownVisible(null); // Close dropdown after selection
+    setDropdownVisible(null);
   };
 
-  const renderDropdown = (vehicleId, locations) => (
+  const renderDropdown = (vehicleId: string, locations: string[]) => (
     <Modal
       transparent={true}
       visible={dropdownVisible === vehicleId}
@@ -106,14 +133,14 @@ const SearchScreen = () => {
                 left: '50%',
                 transform: [{ translateX: -width * 0.4 }, { translateY: -height * 0.2 }],
                 backgroundColor: 'white',
-                width: width * 0.8, // 80% of screen width
-                maxHeight: height * 0.4, // 40% of screen height
+                width: width * 0.8,
+                maxHeight: height * 0.4,
                 borderRadius: 10,
                 padding: 10,
               }}>
               <FlatList
                 data={locations}
-                keyExtractor={item => item}
+                keyExtractor={(item) => item}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={{
@@ -135,22 +162,22 @@ const SearchScreen = () => {
 
   // Handle search input focus and selection
   const handleSearchFocus = () => {
-    setFilteredVehicles(vehicles); // Show all vehicles when focused
-    setSearchQuery(''); // Clear search query on focus to show all names
+    setFilteredVehicles(vehicles);
+    setSearchQuery('');
   };
 
-  const handleVehicleSelect = (model) => {
+  const handleVehicleSelect = (model: string) => {
     setSearchQuery(model);
-    setFilteredVehicles(vehicles.filter(vehicle => vehicle.name === model));
-    setSearchOverlayVisible(false); // Close overlay after selection
+    setFilteredVehicles(vehicles.filter((vehicle: Vehicle) => vehicle.name === model));
+    setSearchOverlayVisible(false);
   };
 
   // Select the first 6 vehicles for the popular vehicles grid
   const popularVehicles = vehicles.slice(0, 6);
 
   // Check if a vehicle is sold out for the selected location
-  const isSoldOut = (vehicleId, location) => {
-    const vehicle = vehicles.find(v => v._id === vehicleId);
+  const isSoldOut = (vehicleId: string, location: string) => {
+    const vehicle = vehicles.find((v: Vehicle) => v._id === vehicleId);
     if (!vehicle || !location || !vehicle.availability) return false;
     return !vehicle.availability[location];
   };
@@ -159,7 +186,7 @@ const SearchScreen = () => {
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
       <Animated.View
-        style={{ }}
+        style={{ height: headerHeight }}
         className="bg-yellow-400 rounded-b-3xl px-5 pt-4 pb-6">
         {/* Top Row */}
         <View className="flex-row items-center justify-between mb-4 px-5">
@@ -208,7 +235,7 @@ const SearchScreen = () => {
         )}>
         <View className="p-4 mt-4">
           {filteredVehicles.length > 0 ? (
-            filteredVehicles.map(item => (
+            filteredVehicles.map((item: Vehicle) => (
               <View
                 key={item._id}
                 className="bg-white rounded-2xl shadow mb-5 overflow-hidden">
@@ -321,42 +348,46 @@ const SearchScreen = () => {
                     <Text className="text-lg font-semibold mb-4">Popular Vehicles</Text>
                     {/* First Row */}
                     <View className="flex-row justify-between mb-4">
-                      {popularVehicles.slice(0, 3).map((vehicle, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          className="w-1/3 p-2"
-                          onPress={() => handleVehicleSelect(vehicle.name)}>
-                          <Image
-                            source={{ uri: vehicle.image || 'https://d3vp2rl7047vsp.cloudfront/businesses/bike_models/images/000/000/299/medium/ROYAL_ENFIELD_HIMALAYAN_GRAVEL_GREY.png?1660730284' }}
-                            className="w-full h-24 rounded-lg object-cover"
-                            resizeMode="contain"
-                          />
-                          <Text className="text-center mt-2 text-sm font-medium">{vehicle.name}</Text>
-                        </TouchableOpacity>
-                      ))}
+                      {popularVehicles.map((vehicle: Vehicle, index: number) =>
+                        index < 3 && (
+                          <TouchableOpacity
+                            key={index}
+                            className="w-1/3 p-2"
+                            onPress={() => handleVehicleSelect(vehicle.name)}>
+                            <Image
+                              source={{ uri: vehicle.image || 'https://d3vp2rl7047vsp.cloudfront/businesses/bike_models/images/000/000/299/medium/ROYAL_ENFIELD_HIMALAYAN_GRAVEL_GREY.png?1660730284' }}
+                              className="w-full h-24 rounded-lg object-cover"
+                              resizeMode="contain"
+                            />
+                            <Text className="text-center mt-2 text-sm font-medium">{vehicle.name}</Text>
+                          </TouchableOpacity>
+                        )
+                      )}
                     </View>
                     {/* Second Row */}
                     <View className="flex-row justify-between">
-                      {popularVehicles.slice(3, 6).map((vehicle, index) => (
-                        <TouchableOpacity
-                          key={index + 3}
-                          className="w-1/3 p-2"
-                          onPress={() => handleVehicleSelect(vehicle.name)}>
-                          <Image
-                            source={{ uri: vehicle.image || 'https://d3vp2rl7047vsp.cloudfront/businesses/bike_models/images/000/000/299/medium/ROYAL_ENFIELD_HIMALAYAN_GRAVEL_GREY.png?1660730284' }}
-                            className="w-full h-24 rounded-lg object-cover"
-                            resizeMode="cover"
-                          />
-                          <Text className="text-center mt-2 text-sm font-medium">{vehicle.name}</Text>
-                        </TouchableOpacity>
-                      ))}
+                      {popularVehicles.map((vehicle: Vehicle, index: number) =>
+                        index >= 3 && index < 6 && (
+                          <TouchableOpacity
+                            key={index}
+                            className="w-1/3 p-2"
+                            onPress={() => handleVehicleSelect(vehicle.name)}>
+                            <Image
+                              source={{ uri: vehicle.image || 'https://d3vp2rl7047vsp.cloudfront/businesses/bike_models/images/000/000/299/medium/ROYAL_ENFIELD_HIMALAYAN_GRAVEL_GREY.png?1660730284' }}
+                              className="w-full h-24 rounded-lg object-cover"
+                              resizeMode="cover"
+                            />
+                            <Text className="text-center mt-2 text-sm font-medium">{vehicle.name}</Text>
+                          </TouchableOpacity>
+                        )
+                      )}
                     </View>
                   </View>
                 )}
                 {searchQuery.length > 0 && (
                   <FlatList
-                    data={vehicles.map(v => v.name).filter(name => name.toLowerCase().includes(searchQuery.toLowerCase()))}
-                    keyExtractor={item => item}
+                    data={vehicles.map((v: Vehicle) => v.name).filter((name: string) => name.toLowerCase().includes(searchQuery.toLowerCase()))}
+                    keyExtractor={(item) => item}
                     renderItem={({ item }) => (
                       <TouchableOpacity
                         style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee' }}

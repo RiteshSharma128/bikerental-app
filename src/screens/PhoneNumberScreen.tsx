@@ -3,13 +3,30 @@ import { View, Text, TextInput, TouchableOpacity, Image, SafeAreaView } from "re
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../contexts/AuthContext";
 import ROUTES from "../navigation/routes/ROUTES";
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+// Define navigation param list
+type RootStackParamList = {
+  PhoneNumber: undefined;
+  Otp: { sessionId: string; phone: string; isLogin?: boolean };
+  ProfileCompletion: { phone: string };
+  Home: undefined;
+  // Add other screens as needed
+};
+
+type PhoneNumberScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PhoneNumber'>;
+
+// Define Auth context return type
+interface AuthContextType {
+  sendOtp: (phone: string) => Promise<string>; // Assuming sendOtp returns sessionId
+}
 
 const PhoneNumberScreen = () => {
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const navigation = useNavigation();
-  const { sendOtp } = useAuth();
-  const [error, setError] = useState(null);
-  const [isLogin, setIsLogin] = useState(true); // Toggle between Login and Signup
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const navigation = useNavigation<PhoneNumberScreenNavigationProp>();
+  const { sendOtp } = useAuth() as AuthContextType;
+  const [error, setError] = useState<string | null>(null); // Explicitly type error as string | null
+  const [isLogin, setIsLogin] = useState<boolean>(true); // Toggle between Login and Signup
 
   const handleContinue = async () => {
     if (!phoneNumber) {

@@ -27,7 +27,6 @@ router.post('/create', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Create new booking
     const booking = new Booking({
       userId: req.userId,
       vehicleId,
@@ -37,16 +36,33 @@ router.post('/create', authenticateToken, async (req, res) => {
       endTime,
       location,
       totalPrice,
-      status: 'confirmed', // Assume confirmed after payment
+      status: 'confirmed',
     });
     await booking.save();
 
-    // Update vehicle's bookings array
     await Vehicle.findByIdAndUpdate(vehicleId, {
       $push: { bookings: { startDate, endDate, location } },
     });
 
     res.json({ message: 'Booking created successfully', booking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get User Bookings Route
+router.get('/user', authenticateToken, async (req, res) => {
+  try {
+    const bookings = await Booking.find({ userId: req.userId })
+      .populate('vehicleId', 'name image') // Populate vehicle name and image
+      .sort({ createdAt: -1 }); // Sort by most recent
+
+    if (!bookings.length) {
+      return res.json({ message: 'No bookings found for this user' });
+    }
+
+    res.json(bookings);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

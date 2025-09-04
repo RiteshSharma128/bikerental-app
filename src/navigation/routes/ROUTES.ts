@@ -14,7 +14,8 @@ const ROUTES = {
     CHOOSE_LOGIN_SIGNUP:"CHOOSE_LOGIN_SIGNUP",
     BOOKCONFIRMATION:'BookConfirmation',
     SPLASH: 'Splash',
-    UPDATEPROFILE:'UpdateProfile'
+    UPDATEPROFILE:'UpdateProfile',
+    BOOKINGS:'Bookings'
   } as const;
   
   export default ROUTES;
